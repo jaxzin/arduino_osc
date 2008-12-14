@@ -1,5 +1,5 @@
 /**************************************************************
- * ARDUINO_OSC 0004
+ * ARDUINO_OSC 0005
  *
  * Firmware to send OSC messages from an Arduino board to a PC
  * and to receive OSC messages sent from the PC.
@@ -36,6 +36,7 @@
  * /adc/[0..5] [0..255] - analog input value changed to [0..255]
  * NOTE: input pins use pull-up resistors and are HIGH by default.
  * Therefore, 0 means HIGH, 1 means LOW (pulled to ground). 
+ * Output pins are low by default.
  *
  * EXAMPLES: PC->ARDUINO 
  * /pinmode/5 0         - set pin 5 to INPUT
@@ -84,10 +85,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  *
- * bjoern@cs.stanford.edu 11/22/2008
+ * bjoern@cs.stanford.edu 12/02/2008
  **************************************************************/
 
-#define VERSION 4
+#define VERSION 5
 
 #define MIN_A2D_DIFF 4  // threshold for reporting a2d changes
 #define MAX_LENGTH 24   // size of buffer for building OSC msgs
@@ -199,7 +200,7 @@ void checkAnalogInput(byte channel) {
   int result;
   int diff;
   // read a2d
-  result = analogRead(channel) >> 2;
+  result = analogRead(channel) >> 2; //only use 8 MSBs
 
   // compare to last reading - if delta big enough,
   // send message
@@ -209,7 +210,7 @@ void checkAnalogInput(byte channel) {
     a2dBuffer[channel]=result;
     strcpy(oscOutAddress,prefixA2d);
     strcat(oscOutAddress,numbers[channel]);
-    oscSendMessageInt(oscOutAddress, (result>>2));
+    oscSendMessageInt(oscOutAddress, result);
   }
 }
 
@@ -301,6 +302,8 @@ void oscReceiveMessageInt(char * msg, unsigned long value)
   if(strncmp(msg,prefixPwm,strlen(prefixPwm))==0) {
     outPin = atoi(msg+strlen(prefixPwm));
     if(outPin>=FIRST_DIGITAL_PIN && outPin<=LAST_DIGITAL_PIN) { //sanity check
+      pinDir = pinDir | (1<<outPin); //turn direction bit to out
+      pinMode(outPin,OUTPUT); // turn DDR bit to output
       analogWrite(outPin,(byte)(value & 0xFF));
     }
     return;
@@ -357,6 +360,7 @@ void oscReceiveMessageInt(char * msg, unsigned long value)
       else {
         pinDir = pinDir | (1<<outPin); //turn bit on
         pinMode(outPin,OUTPUT); // turn DDR bit to output
+        digitalWrite(outPin,LOW); //set LOW by default
       }
     }
     return;

@@ -117,6 +117,7 @@ char prefixOut[] = "/out/";
 char prefixPwm[] = "/pwm/";
 char prefixIn[]="/in/";
 char prefixA2d[]="/adc/";
+char prefixReset[]="/reset"; //TODO: implement
 
 char oscOutAddress[10]={0x00}; //string that holds outgoing osc message address
 
@@ -132,12 +133,14 @@ boolean reportDigital = true; //no per-pin reporting for analog
  ***********************************************/
 void setup() {
   int i;
-  Serial.begin(SERIAL_SPEED);	
+  reportAnalog=0x00;
+  reportDigital=true;
   // set pins 2-12 as inputs   
   for(i=FIRST_DIGITAL_PIN; i<=LAST_DIGITAL_PIN; i++) {
     pinMode(i,INPUT);
     digitalWrite(i,HIGH); // use pull-ups
   } 
+  Serial.begin(SERIAL_SPEED);
 }
 
 /***********************************************
@@ -364,6 +367,11 @@ void oscReceiveMessageInt(char * msg, unsigned long value)
       }
     }
     return;
+  }
+  //is this a reset message? if so, reinitialize.
+  if(strncmp(msg,prefixReset,strlen(prefixReset))==0) {
+    oscRxNextOp = OSC_RXOP_WAITFORSTART;
+    setup();
   }
 }
 

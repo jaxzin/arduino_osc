@@ -102,6 +102,27 @@
 #define LAST_ANALOG_PIN 5
 #define NUM_ANALOG_PINS 6
 
+
+// define state constants for parsing FSM
+#define OSC_RXOP_WAITFORSTART 0
+#define OSC_RXOP_READSIZE 1
+#define OSC_RXOP_READADDR 2
+#define OSC_RXOP_READTAG 3
+#define OSC_RXOP_READARG 4
+#define OSC_RXOP_READCHECKSUM 5
+//removed READMSG
+#define OSC_RXOP_SKIPMSG 7
+#define OSC_RXOP_READARG1BYTE1 8
+#define OSC_RXOP_READARG1BYTE2 9
+#define OSC_RXOP_READARG1BYTE3 10
+#define OSC_RXOP_READARG1BYTE4 11
+#define OSC_RXOP_READTAGBYTE1 12
+#define OSC_RXOP_READTAGBYTE2 13
+#define OSC_RXOP_READTAGBYTE3 14
+#define OSC_RXOP_READTAGBYTE4 15
+#define OSC_MAX_RX_MSG_SIZE 32
+
+
 int incomingByte = 0;	// for incoming serial data
 int k = FIRST_ANALOG_PIN;
 
@@ -126,6 +147,17 @@ char* numbers[] = {"0","1","2","3","4","5","6","7","8","9","10","11","12"};
 // which values should be reported?
 byte reportAnalog = 0x00; //bitmask - 0=off, 1=on - default:all off 
 boolean reportDigital = true; //no per-pin reporting for analog
+
+//////parser variables////////
+static byte oscRxNextOp = OSC_RXOP_WAITFORSTART; //keeps track of current state
+// space for buffer in RAM
+static char oscRxData[OSC_MAX_RX_MSG_SIZE];
+
+byte oscRxMsgSize; // size of incoming msg
+byte oscRxReadBytes; //number of bytes read
+byte *oscRxAddr;
+unsigned long oscRxIntArg1; //int argument of message
+byte oscRxChecksum;
 
 
 /***********************************************
@@ -381,35 +413,8 @@ void oscReceiveMessageInt(char * msg, unsigned long value)
  * PARSING OF MESSAGES BELOW
  ***********************************/
 
-// define state constants for parsing FSM
-#define OSC_RXOP_WAITFORSTART 0
-#define OSC_RXOP_READSIZE 1
-#define OSC_RXOP_READADDR 2
-#define OSC_RXOP_READTAG 3
-#define OSC_RXOP_READARG 4
-#define OSC_RXOP_READCHECKSUM 5
-//removed READMSG
-#define OSC_RXOP_SKIPMSG 7
-#define OSC_RXOP_READARG1BYTE1 8
-#define OSC_RXOP_READARG1BYTE2 9
-#define OSC_RXOP_READARG1BYTE3 10
-#define OSC_RXOP_READARG1BYTE4 11
-#define OSC_RXOP_READTAGBYTE1 12
-#define OSC_RXOP_READTAGBYTE2 13
-#define OSC_RXOP_READTAGBYTE3 14
-#define OSC_RXOP_READTAGBYTE4 15
-#define OSC_MAX_RX_MSG_SIZE 32
 
 
-static byte oscRxNextOp = OSC_RXOP_WAITFORSTART; //keeps track of current state
-// space for buffer in RAM
-static char oscRxData[OSC_MAX_RX_MSG_SIZE];
-
-byte oscRxMsgSize; // size of incoming msg
-byte oscRxReadBytes; //number of bytes read
-byte *oscRxAddr;
-unsigned long oscRxIntArg1; //int argument of message
-byte oscRxChecksum;
 
 
 /***********************************

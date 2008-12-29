@@ -1,23 +1,22 @@
 #include <Ethernet.h>
-#include <Udp.h>
+#include <SendUdp.h>
 
 
 /**************************************************************
  * ARDUINO_OSC_UDP 0001
  * based on ARDUINO_OSC 0005
  *
- * Firmware to send and receive OSC messages from an Arduino board to a PC
- * over UDP using the Arduino Shield.
+ * Firmware to send OSC messages from an Arduino board to a PC
+ * over UDP using the Ethernet Shield.
  *
  * Right now, only messages with a single integer argument
- * are supported.
+ * are supported, and only sending is supported.
  *
  * Uses the standard OSC packet format (no serial wrapping)
  * 
  * PROTOCOL DETAILS
  * Digital pins 0..9 and analog inputs 0..5 are supported.
- * Digital pins 8 and 9 are still screwey.
- *
+ * No output yet.
  * Below, the notation [0..9] means: any number from 0 to 9.
  * The notation [0|1] means: either 0 or 1.
  * Pin numbers are always part of the OSC address. 
@@ -43,11 +42,11 @@
  *     (change variable reportAnalog to 0xFF to enable by default)
  *
  * NOTES:
- *   - Pins 10-13 cannot be used (needed for SPI communication with ethernet shield)
+ *   - Pins 10-13 cannot be used
  *   - Resolution on analog in and out is 8 bit.
  * 
  * MIT License:
- * Copyright (c) 2008 Bjoern Hartmann
+ * Copyright (c) 2008 Bjoern Hartmann, Stanford HCI Group
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -71,8 +70,8 @@
 
 #define VERSION 1
 
-
-#define MAX_LENGTH 32   // size of buffer for OSC msgs (in and out)
+#define MIN_A2D_DIFF 4  // threshold for reporting a2d changes
+#define MAX_LENGTH 24   // size of buffer for building OSC msgs
 
 
 #define FIRST_DIGITAL_PIN 0
@@ -84,24 +83,12 @@
 #define NUM_ANALOG_PINS 6
 
 
-/* ETHERNET CONFIGURATION *************************************/
-/* ARDUINO: set MAC, IP address of Ethernet shield and its gateway */
-byte mac[] = {  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED }; //MAC address to use
-byte ip[] = { 192, 168, 11, 200 }; // Arduino's IP address
-byte gw[] = { 192, 168, 11, 1 };   // Gateway IP address
-
-/* TARGET: set this to IP/Port of computer that will receive
- * UDP messages from Arduino */
-byte targetIp[] = {192,168,11,15};
-int targetPort = 8000;
-/***************************************************************/
-
-
 int k = FIRST_ANALOG_PIN;
 
 int inputBuffer = 0xFFFF; // holds previous values of PORTB and PORTD (pins 0..7); start all high because of pull-ups
 int a2dBuffer[6] = {0x00};   // holds previous A2D conversion values
 char oscBuffer[MAX_LENGTH]={0x00}; // holds outgoing OSC message
+
 unsigned int pinDir = 0x0000; //buffer that saves pin directions 0=input; 1=output; default: all in
 
 char prefixReport[] = "/report/";
@@ -113,15 +100,17 @@ char prefixA2d[]="/adc/";
 char prefixReset[]="/reset"; //TODO: implement
 
 char oscOutAddress[10]={0x00}; //string that holds outgoing osc message address
+
 char* numbers[] = {"0","1","2","3","4","5","6","7","8","9","10","11","12"};
 
+/* CONFIGURE ETHERNET INTERFACE HERE */
+byte mac[] = {  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED }; //MAC address to use
+byte ip[] = { 192, 168, 11, 200 }; // Arduino's IP address
+byte gw[] = { 192, 168, 11, 1 };   // Gateway IP address
 
-
-/* Buffers for received messages */
-byte rcvIp[4]; //source ip from which last packet originated
-int rcvPort; // source port from which last packet originated
-byte rcvBuffer[MAX_LENGTH]; //messagebuf for incoming packet
-
+/* TARGET FOR UDP MESSAGES */
+byte targetIp[] = {192,168,11,15};
+int targetPort = 8000;
 
 // which values should be reported? configured in setup()
 byte reportAnalog; //bitmask - 0=off, 1=on - default:all off 
@@ -132,30 +121,22 @@ int a2dReportFrequency = 10; //report frequency for analog data in ms
 unsigned long currentMillis=1;
 unsigned long nextExecuteTime=0; // for comparison with timer0_overflow_count
 
-byte oscRxMsgSize; // size of incoming msg
-byte oscRxReadBytes; //number of bytes read
-
-unsigned long oscRxIntArg1; //int argument of incoming osc message
-
 
 /***********************************************
  * SETUP - open serial comm and initialize pins
  ***********************************************/
 void setup() {
   int i;
-  
-  reportAnalog=0x00; 
+  reportAnalog=0x01;
   reportDigital=true;
 
-  // set all digital pins as inputs
+  // set pins 0..9 as inputs   
   for(i=FIRST_DIGITAL_PIN; i<=LAST_DIGITAL_PIN; i++) {
     pinMode(i,INPUT);
     digitalWrite(i,HIGH); // use pull-ups
   } 
-  
   Ethernet.begin(mac,ip,gw);
-  Udp.begin(targetIp,targetPort);
-  //DEBUG: Serial.begin(9600);
+  SendUdp.begin(targetIp,targetPort);
 }
 
 /***********************************************
@@ -178,17 +159,6 @@ void loop() {
 		  }
 		}
 	}
-
-  //if there's data available, read a packet
-  if(Udp.available()) {
-    oscRxMsgSize = Udp.readPacket(rcvBuffer,MAX_LENGTH,rcvIp,(uint16_t *)&rcvPort);
-    if(oscRxMsgSize <= MAX_LENGTH) {
-      oscHandleRxPacket();
-    } else {
-      //PANIC - we've already clobbered mem past our buffer boundary
-      //reset?
-    }
-  }
 }
 
 /***********************************************
@@ -286,168 +256,6 @@ void oscSendMessageInt(char * address, unsigned long value){
 
   //send message as one packet
   for(i=0;i<offset;i++) {
-    Udp.sendPacket((const byte *)oscBuffer,offset);
+		SendUdp.sendPacket((const byte *)oscBuffer,offset);
   }
 }
-
-
-
-
-/***********************************************
- * Handle a received OSC message
- ***********************************************/
-void oscReceiveMessageInt(char * msg, unsigned long value)
-{
-  int i;
-  int outPin;
-  
-  //uncomment to echo message back for debugging
-  Serial.println(msg);
-  Serial.println(value);
-  
-  // check if this is an output message, i.e., starts with "/out/"
-  if(strncmp(msg,prefixOut,strlen(prefixOut))==0) {
-    //if so, find which pin
-    outPin = atoi(msg+strlen(prefixOut));
-    if(outPin>=FIRST_DIGITAL_PIN && outPin<=LAST_DIGITAL_PIN) { //sanity check
-      digitalWrite(outPin,(byte)(value & 0x01)); 
-    }
-    return;
-  }
-
-  // check if this is a pwm message, i.e., starts with "/pwm/"
-  if(strncmp(msg,prefixPwm,strlen(prefixPwm))==0) {
-    outPin = atoi(msg+strlen(prefixPwm));
-    if(outPin>=FIRST_DIGITAL_PIN && outPin<=LAST_DIGITAL_PIN) { //sanity check
-      pinDir = pinDir | (1<<outPin); //turn direction bit to out
-      pinMode(outPin,OUTPUT); // turn DDR bit to output
-      analogWrite(outPin,(byte)(value & 0xFF));
-    }
-    return;
-  }
-
-  // check if this is a "report" message which starts with "/report/"
-  // changes which pins get reported
-  if(strncmp(msg,prefixReport,strlen(prefixReport))==0) {
-    //if it continues with "/in"
-
-    if(strncmp(msg+strlen(prefixReport)-1,prefixIn,strlen(prefixIn)-1)==0) {
-      reportDigital = (value!=0);
-      return;
-    }
-
-    //else if it continues with "/adc/"
-    else if(strncmp(msg+strlen(prefixReport)-1,prefixA2d,strlen(prefixA2d))==0) {
-      //extract which analog pin we're talking about
-      outPin = atoi(msg+strlen(prefixReport)-1+strlen(prefixA2d));
-      //flip the bit in reportAnalog:
-      if(outPin>=FIRST_ANALOG_PIN && outPin<=LAST_ANALOG_PIN) { //sanity check
-        if(value==0) {
-          reportAnalog = reportAnalog & ~(1<<outPin);
-        }   
-        else {
-          reportAnalog = reportAnalog | (1<<outPin);
-        }
-      }
-      return;
-    }
-
-    //else if it continues with "/adc" (no final slash)
-    else if(strncmp(msg+strlen(prefixReport)-1,prefixA2d,strlen(prefixA2d)-1)==0) {
-      //turn reporting for all analog pins on or off
-      if(value==0) {
-        reportAnalog=0x00;
-      } 
-      else {
-        reportAnalog=0xFF;
-      }
-      return;
-    }
-  }
-  
-  //finally, this could be a "/pinmode/ message"
-  if(strncmp(msg,prefixPinmode,strlen(prefixPinmode))==0) {
-    outPin = atoi(msg+strlen(prefixPinmode));
-    if(outPin>=FIRST_DIGITAL_PIN && outPin<=LAST_DIGITAL_PIN) { //sanity check
-      if(value==0) {
-        pinDir = pinDir & ~(1<<outPin); //turn bit in our own direction buffer to off = input
-        pinMode(outPin,INPUT); //set DDR register bit to input
-        digitalWrite(outPin,HIGH); //reenable pull-up
-      } 
-      else {
-        pinDir = pinDir | (1<<outPin); //turn bit on
-        pinMode(outPin,OUTPUT); // turn DDR bit to output
-        digitalWrite(outPin,LOW); //set LOW by default
-      }
-    }
-    return;
-  }
-  //is this a reset message? if so, reinitialize.
-  if(strncmp(msg,prefixReset,strlen(prefixReset))==0) {
-    setup();
-  }
-}
-
-
-/***********************************
- * PARSER
- ***********************************/
-void oscHandleRxPacket() {
-  byte i;
-  int intArg;
-  unsigned char c;
-  oscRxReadBytes=0;
-  
-  //read address and null-terminate it if necessary
-  while (true) {
-    c=(unsigned char) rcvBuffer[oscRxReadBytes];
-    if(c!=0 && c!=',') {
-      oscRxReadBytes++;
-    } 
-    else if (c==',') {
-      //if we went straight from addr to to tag string, convert "," of tag string to 0x00
-      // so our address string is properly zero-terminated
-      //and jump ahead in the state machine to read second tag byte next
-      rcvBuffer[oscRxReadBytes++]=0x00;
-      break;
-    }
-    else {
-      oscRxReadBytes++;
-      if(!((oscRxReadBytes)&0x03)) { //skip 0s until we hit byte boundary
-        break; 
-      } 
-    }
-  }
-  
-  
-  //read typetag if present 
-  if(rcvBuffer[oscRxReadBytes]==',') {
-    // found typetag start, assume its ',' 'i' 0x00 0x00
-    oscRxReadBytes++;
-    if(rcvBuffer[oscRxReadBytes]=='i') {
-       oscRxReadBytes+=3; //skip following  0x00 twice
-       //now read argument
-       oscRxIntArg1 = readLongInt(rcvBuffer,oscRxReadBytes);
-       //dispatch message
-       oscReceiveMessageInt((char *)rcvBuffer,oscRxIntArg1);
-    }
-  } else {
-    // no type tag, read argument right away
-    oscRxIntArg1 = readLongInt(rcvBuffer,oscRxReadBytes);
-    //dispatch message
-    oscReceiveMessageInt((char *)rcvBuffer,oscRxIntArg1);
-    
-  }
-}
-
-// read an unsigned long int from 4 bytes in buffer,
-// starting at offset, MSB first
-unsigned long readLongInt(byte * buffer, int offset) {
-  unsigned long result=0;
-  result |= ((unsigned long)(buffer[offset]) << 0x18);
-  result |= ((unsigned long)(buffer[offset+1]) << 0x10);
-  result |= ((unsigned long)(buffer[offset+2]) << 0x08);
-  result |= ((unsigned long)(buffer[offset+3]));
-  return result;
-}
-

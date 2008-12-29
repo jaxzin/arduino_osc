@@ -11,7 +11,7 @@
 
 #include "Print.h"
 
-class SendUdp {
+class SendUdpClass {
 private:
 	uint8_t _sock;
 	uint8_t *_ip;
@@ -21,6 +21,6 @@ public:
 	uint16_t sendPacket(const uint8_t *, uint16_t);
 };
 
-extern SendUdp Udp;
+extern SendUdpClass SendUdp;
 
 #endif

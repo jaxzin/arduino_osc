@@ -15,15 +15,15 @@ extern "C" {
 #include "Ethernet.h"
 #include "SendUdp.h"
 
-void SendUdp::begin(uint8_t *ip, uint16_t port) {
+void SendUdpClass::begin(uint8_t *ip, uint16_t port) {
 	_ip = ip;
 	_port = port;
 	_sock = 0;
 	socket(_sock,Sn_MR_UDP,8888,0);
 }
 
-uint16_t SendUdp::sendPacket(const uint8_t * buf, uint16_t len){
+uint16_t SendUdpClass::sendPacket(const uint8_t * buf, uint16_t len){
 	return sendto(_sock,buf,len,_ip,_port);
 }
 
-SendUdp Udp;
+SendUdpClass SendUdp;

@@ -24,13 +24,31 @@
  * The single integer argument for each OSC message
  * represents either HIGH/LOW, or an 8bit analog value.
  *
- * 
+ * PC->ARDUINO MESSAGE FORMAT
+ * /pinmode/[2..12]  [0|1] - set a pin to input or output mode
+ *
+ * /report/adc [0|1]    - turn all analog pin reporting on/off (Default: off)
+ * /report/adc/[0..5] [0|1]  - set analog pin reporting for one pin on/off
+ * /report/in [0|1]     - turn digital pin reporting on/off (default: on)
+ *
+ * /out/5 [0|1]         - set a digital pin to [low|high]
+ * /pwm/10 [0..255]     - set duty on a pwm-enabled pin 
+ *
  * ARDUINO->PC PROTOCOL 
  * /in/[0..9] [0|1]    - a digital input pin changed to [high|low]
  * /adc/[0..5] [0..255] - analog input value changed to [0..255]
  * NOTE: input pins use pull-up resistors and are HIGH by default.
  * Therefore, 0 means HIGH, 1 means LOW (pulled to ground). 
  *
+ *
+ * EXAMPLES: PC->ARDUINO 
+ * /pinmode/5 0         - set pin 5 to INPUT
+ * /pinmode/9 1         - set pin 9 to OUTPUT
+ * /out/9 0             - set pin 9 to LOW
+ * /out/7 1            - set pin 7 to HIGH
+ * /pwm/9 255          - set PWM duty on pin 9 to 255 (100%)
+ * /report/in 1         - turn digital input pin reporting on
+ * /report/adc/4 0      - turn reporting of analog input 4 off
  *
  * EXAMPLES: ARDUINO->PC
  * /in/4 1              - digital input pin 4 pulled to ground
@@ -42,9 +60,12 @@
  *   - Analog reporting is disabled 
  *     (change variable reportAnalog to 0xFF to enable by default)
  *
+ * YOU WILL HAVE TO CHANGE ETHERNET CONFIGURATION TO MATCH YOUR
+ * ENVIRONMENT BEFORE COMPILING/UPLOADING!
+ *
  * NOTES:
  *   - Pins 10-13 cannot be used (needed for SPI communication with ethernet shield)
- *   - Resolution on analog in and out is 8 bit.
+ *   - Resolution on analog in and out is 8 bit. 
  * 
  * MIT License:
  * Copyright (c) 2008 Bjoern Hartmann
@@ -85,10 +106,12 @@
 
 
 /* ETHERNET CONFIGURATION *************************************/
-/* ARDUINO: set MAC, IP address of Ethernet shield and its gateway */
+/* ARDUINO: set MAC, IP address of Ethernet shield, its gateway,
+   and local port to listen on for incoming packets */
 byte mac[] = {  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED }; //MAC address to use
 byte ip[] = { 192, 168, 11, 200 }; // Arduino's IP address
 byte gw[] = { 192, 168, 11, 1 };   // Gateway IP address
+int localPort = 8888; //local port to listen on
 
 /* TARGET: set this to IP/Port of computer that will receive
  * UDP messages from Arduino */
@@ -154,7 +177,7 @@ void setup() {
   } 
   
   Ethernet.begin(mac,ip,gw);
-  Udp.begin(targetIp,targetPort);
+  Udp.begin(localPort);
   //DEBUG: Serial.begin(9600);
 }
 
@@ -286,7 +309,7 @@ void oscSendMessageInt(char * address, unsigned long value){
 
   //send message as one packet
   for(i=0;i<offset;i++) {
-    Udp.sendPacket((const byte *)oscBuffer,offset);
+    Udp.sendPacket((byte *)oscBuffer,offset,targetIp,targetPort);
   }
 }
 

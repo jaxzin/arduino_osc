@@ -1,0 +1,10 @@
+#N canvas 355 255 902 595 10;
+#X declare -lib oscx;
+#X obj 487 98 s oscIn;
+#X obj 82 126 arduino_osc_widgets;
+#X text 76 21 bjoern@cs.stanford.edu 11/2008;
+#X text 75 8 see arduino_osc_widgets for message format;
+#X obj 360 24 import oscx;
+#X obj 485 56 dumpOSC 8000;
+#X text 77 -11 ARDUINO_OSC_UDP Test Patch;
+#X connect 5 0 0 0;

@@ -38,6 +38,7 @@ extern "C" {
 void UdpClass::begin(uint16_t port) {
 	_port = port;
 	_sock = 0; //TODO: should not be hardcoded
+	_index =0;
 	socket(_sock,Sn_MR_UDP,_port,0);
 }
 
@@ -78,6 +79,42 @@ uint16_t UdpClass::readPacket(uint8_t * buf, uint16_t len) {
 	uint8_t ip[4];
 	uint16_t port[1];
 	return recvfrom(_sock,buf,len,ip,port);
+}
+
+
+
+uint8_t UdpClass::beginPacket(uint8_t *ip, uint16_t port) { // returns 1 on success, 0 if we already started a packet
+	if(_index==0) {
+		_remoteIp[0]=ip[0];
+		_remoteIp[1]=ip[1];
+		_remoteIp[2]=ip[2];
+		_remoteIp[3]=ip[3];
+		_remotePort = port;
+		return 1;
+	}
+	else {
+		//we already started a packet
+		return 0;
+	}
+}
+
+
+
+// TODO: how do we indicate that we can't add to full buffer?
+// or do we just send a full packet and start the next?
+void UdpClass::write(uint8_t b) {// add a byte to the currently assembled packet if there is space
+	if(_index>= UDP_TX_PACKET_MAX_SIZE)
+		return;		
+	_buffer[_index++] = b;
+}
+
+uint16_t UdpClass::endPacket(){ // returns # of bytes sent on success, 0 if there's nothing to send
+	// send the packet
+	uint16_t result = sendPacket(_buffer,_index,_remoteIp,_remotePort);
+	// reset buffer index
+	_index=0;
+	// return sent bytes
+	return result;
 }
 
 /* Create one global object */

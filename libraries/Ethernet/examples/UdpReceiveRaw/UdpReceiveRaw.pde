@@ -1,9 +1,9 @@
 #include <Ethernet.h>
-#include <Udp.h>
+#include <UdpRaw.h>
 
-/* UdpReceive.pde: Example how to receive packets over UDP 
+/* UdpReceive.pde: Example how to receive packets over UDP using UdpRaw library
  * prints received packet to serial port
- * bjoern@cs.stanford.edu 12/29/2008
+ * bjoern@cs.stanford.edu 12/30/2008
  */
 
 /* ETHERNET SHIELD CONFIGURATION  
@@ -26,15 +26,15 @@ int i;
 /* SETUP: init Ethernet shield, start UDP listening, open serial port */
 void setup() {
   Ethernet.begin(mac,ip,gw);
-  Udp.begin(localPort);
+  UdpRaw.begin(localPort);
   Serial.begin(9600); 
 }
 /* LOOP: wait for incoming packets and print each packet to the serial port */
 void loop() {  
   
   // if there's data available, read a packet
-  if(Udp.available()) {
-    packetSize = Udp.readPacket(packetBuffer,MAX_SIZE,remoteIp,(uint16_t *)&remotePort);
+  if(UdpRaw.available()) {
+    packetSize = UdpRaw.readPacket(packetBuffer,MAX_SIZE,remoteIp,(uint16_t *)&remotePort);
     if(packetSize <= MAX_SIZE) {
       
       Serial.print("Received packet of size ");

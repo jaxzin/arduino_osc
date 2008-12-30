@@ -32,10 +32,10 @@ extern "C" {
 }
 
 #include "Ethernet.h"
-#include "Udp.h"
+#include "UdpBytewise.h"
 
 /* Start UDP socket, listening at local port PORT */
-void UdpClass::begin(uint16_t port) {
+void UdpBytewiseClass::begin(uint16_t port) {
 	_port = port;
 	_sock = 0; //TODO: should not be hardcoded
 	_index =0;
@@ -43,47 +43,14 @@ void UdpClass::begin(uint16_t port) {
 }
 
 
-/* Send packet contained in buf of length len to peer at specified ip, and port */
-/* Use this function to transmit binary data that might contain 0x00 bytes*/
-/* This function returns sent data size for success else -1. */
-uint16_t UdpClass::sendPacket(uint8_t * buf, uint16_t len,  uint8_t * ip, uint16_t port){
-	return sendto(_sock,(const uint8_t *)buf,len,ip,port);
-}
-
-/* Send  zero-terminated string str as packet to peer at specified ip, and port */
-/* This function returns sent data size for success else -1. */
-uint16_t UdpClass::sendPacket(const char str[], uint8_t * ip, uint16_t port){	
-	// compute strlen
-	const char *s;
-	for(s = str; *s; ++s);
-	uint16_t len = (s-str);
-	// send packet
-	return sendto(_sock,(const uint8_t *)str,len,ip,port);
-}
 /* Is data available in rx buffer? Returns 0 if no, number of available bytes if yes. */
-int UdpClass::available() {
+int UdpBytewiseClass::available() {
 	return getSn_RX_RSR(_sock);
 }
 
 
-/* Read a received packet into buffer buf (whis is of maximum length len); */
-/* store calling ip and port as well. Call available() to make sure data is ready first. */
-/* NOTE: I don't believe len is ever checked in implementation of recvfrom(),*/
-/*       so it's easy to overflow buf. */
-uint16_t UdpClass::readPacket(uint8_t * buf, uint16_t len, uint8_t *ip, uint16_t *port) {
-	return recvfrom(_sock,buf,len,ip,port);
-}
 
-/* Read a received packet, throw away peer's ip and port.  See note above. */
-uint16_t UdpClass::readPacket(uint8_t * buf, uint16_t len) {
-	uint8_t ip[4];
-	uint16_t port[1];
-	return recvfrom(_sock,buf,len,ip,port);
-}
-
-
-
-uint8_t UdpClass::beginPacket(uint8_t *ip, uint16_t port) { // returns 1 on success, 0 if we already started a packet
+int UdpBytewiseClass::beginPacket(uint8_t *ip, unsigned int port) { // returns 1 on success, 0 if we already started a packet
 	if(_index==0) {
 		_remoteIp[0]=ip[0];
 		_remoteIp[1]=ip[1];
@@ -102,20 +69,22 @@ uint8_t UdpClass::beginPacket(uint8_t *ip, uint16_t port) { // returns 1 on succ
 
 // TODO: how do we indicate that we can't add to full buffer?
 // or do we just send a full packet and start the next?
-void UdpClass::write(uint8_t b) {// add a byte to the currently assembled packet if there is space
+void UdpBytewiseClass::write(uint8_t b) {// add a byte to the currently assembled packet if there is space
 	if(_index>= UDP_TX_PACKET_MAX_SIZE)
 		return;		
 	_buffer[_index++] = b;
 }
 
-uint16_t UdpClass::endPacket(){ // returns # of bytes sent on success, 0 if there's nothing to send
+int UdpBytewiseClass::endPacket(){ // returns # of bytes sent on success, 0 if there's nothing to send
 	// send the packet
-	uint16_t result = sendPacket(_buffer,_index,_remoteIp,_remotePort);
+	uint16_t result = sendto(_sock,(const uint8_t *)_buffer,_index,_remoteIp,_remotePort);
 	// reset buffer index
 	_index=0;
 	// return sent bytes
-	return result;
+	return (int)result;
 }
 
+
+
 /* Create one global object */
-UdpClass Udp;
+UdpBytewiseClass UdpBytewise;

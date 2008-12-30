@@ -33,35 +33,27 @@
  * bjoern@cs.stanford.edu 12/29/2008
  */
 
-#ifndef Udp_h
-#define Udp_h
+#ifndef UdpRaw_h
+#define UdpRaw_h
 
-#include "Print.h"
 #define UDP_TX_PACKET_MAX_SIZE 24
 
-class UdpClass : public Print {
+class UdpRawClass {
 private:
 	uint8_t _sock;  // socket ID for Wiz5100
 	uint16_t _port; // local port to listen on
-	uint8_t _buffer[UDP_TX_PACKET_MAX_SIZE];
-	uint8_t _index;
-	uint8_t _remoteIp[4];
-	uint16_t _remotePort;
+
 public:
 	void begin(uint16_t);				// initialize, start listening on specified port
+	int available();								// has data been received?
+
+	// C-style buffer-oriented functions
 	uint16_t sendPacket(uint8_t *, uint16_t, uint8_t *, uint16_t); //send a packet to specified peer 
 	uint16_t sendPacket(const char[], uint8_t *, uint16_t);  //send a string as a packet to specified peer
-	int available();								// has data been received?
 	uint16_t readPacket(uint8_t *, uint16_t);		// read a received packet 
-	uint16_t readPacket(uint8_t *, uint16_t, uint8_t *, uint16_t *);		// read a received packet, also return sender's ip and port 
-	
-	//byte-oriented functions:
-	uint8_t beginPacket(uint8_t *, uint16_t); // returns 1 on success, 0 if we already started a packet
-	virtual void write(uint8_t); // add a byte to the currently assembled packet (if there's space)
-	uint16_t endPacket(); // returns # of bytes sent on success, 0 if there's nothing to send
-	
+	uint16_t readPacket(uint8_t *, uint16_t, uint8_t *, uint16_t *);		// read a received packet, also return sender's ip and port 	
 };
 
-extern UdpClass Udp;
+extern UdpRawClass UdpRaw;
 
 #endif

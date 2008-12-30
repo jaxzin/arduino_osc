@@ -1,6 +1,6 @@
 #include <Ethernet.h>
-#include <Udp.h>
-/* UdpSendBytewise.pde: Example how to send packets over UDP 
+#include <UdpBytewise.h>
+/* UdpSendBytewise.pde: Example how to send packets over UDP using the UdpBytewise library
  * by assembling packets byte-by-byte
  * to check for received packets on Unix-ish setup, execute:
  * sudo tcpdump -A -ien0 "udp port 8000"
@@ -23,14 +23,14 @@ int i=0;
 
 void setup() {
   Ethernet.begin(mac,ip,gw);
-  Udp.begin(localPort);
+  UdpBytewise.begin(localPort);
 }
 
 void loop() {
   // this version of sendPacket sends a zero-terminated string.
-  Udp.beginPacket(targetIp,targetPort);
-  Udp.print("Hello, World! ");
-  Udp.print(i++);
-  Udp.endPacket();
+  UdpBytewise.beginPacket(targetIp,targetPort);
+  UdpBytewise.print("Hello, World! ");
+  UdpBytewise.print(i++);
+  UdpBytewise.endPacket();
   delay(1000);
 }

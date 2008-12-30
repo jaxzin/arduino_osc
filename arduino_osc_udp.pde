@@ -1,5 +1,5 @@
 #include <Ethernet.h>
-#include <Udp.h>
+#include <UdpRaw.h>
 
 
 /**************************************************************
@@ -178,7 +178,7 @@ void setup() {
   } 
   
   Ethernet.begin(mac,ip,gw);
-  Udp.begin(localPort);
+  UdpRaw.begin(localPort);
   //DEBUG: Serial.begin(9600);
 }
 
@@ -204,8 +204,8 @@ void loop() {
 	}
 
   //if there's data available, read a packet
-  if(Udp.available()) {
-    oscRxMsgSize = Udp.readPacket(rcvBuffer,MAX_LENGTH,rcvIp,(uint16_t *)&rcvPort);
+  if(UdpRaw.available()) {
+    oscRxMsgSize = UdpRaw.readPacket(rcvBuffer,MAX_LENGTH,rcvIp,(uint16_t *)&rcvPort);
     if(oscRxMsgSize <= MAX_LENGTH) {
       oscHandleRxPacket();
     } else {
@@ -309,7 +309,7 @@ void oscSendMessageInt(char * address, unsigned long value){
   oscBuffer[offset++]=*(((unsigned char *)(&value))+0);
 
   //send message as one packet
-  Udp.sendPacket((byte *)oscBuffer,offset,targetIp,targetPort);
+  UdpRaw.sendPacket((byte *)oscBuffer,offset,targetIp,targetPort);
 
 }
 

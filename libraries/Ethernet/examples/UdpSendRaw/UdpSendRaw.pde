@@ -1,9 +1,9 @@
 #include <Ethernet.h>
-#include <Udp.h>
-/* UdpSend.pde: Example how to send packets over UDP 
+#include <UdpRaw.h>
+/* UdpSendRaw.pde: Example how to send packets over UDP using the UdpRaw library 
  * to check for received packets on Unix-ish setup, execute:
  * sudo tcpdump -ien0 "udp port 8000"
- * bjoern@cs.stanford.edu 12/29/2008 */
+ * bjoern@cs.stanford.edu 12/30/2008 */
 
 /* ETHERNET CONFIGURATION 
  * ARDUINO: set MAC, IP address of Ethernet shield, its gateway,
@@ -25,16 +25,16 @@ int packetLen = 12;
 
 void setup() {
   Ethernet.begin(mac,ip,gw);
-  Udp.begin(localPort);
+  UdpRaw.begin(localPort);
 }
 
 void loop() {
   // this version of sendPacket sends a zero-terminated string.
-  Udp.sendPacket("hello, world.",targetIp,targetPort);
+  UdpRaw.sendPacket("hello, world.",targetIp,targetPort);
   delay(1000);
   
   // this version sends an arbitrary buffer with specified length;
   // buffer can contain '\0'
-  Udp.sendPacket(packet,packetLen,targetIp,targetPort);
+  UdpRaw.sendPacket(packet,packetLen,targetIp,targetPort);
   delay(1000);
 }

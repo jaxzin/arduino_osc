@@ -38,16 +38,25 @@
 
 #include "Print.h"
 
-#define UDP_TX_PACKET_MAX_SIZE 24
+#define UDP_TX_PACKET_MAX_SIZE 32
+#define UDP_RX_PACKET_MAX_SIZE 32
 
 class UdpBytewiseClass: public Print {
 private:
 	uint8_t _sock;  // socket ID for Wiz5100
 	uint16_t _port; // local port to listen on
-	uint8_t _buffer[UDP_TX_PACKET_MAX_SIZE];
-	uint8_t _index;
-	uint8_t _remoteIp[4];
-	uint16_t _remotePort;
+	
+	uint8_t _txBuffer[UDP_TX_PACKET_MAX_SIZE];
+	uint8_t _txIndex;
+	uint8_t _txIp[4];
+	uint16_t _txPort;
+	
+	uint8_t _rxBuffer[UDP_RX_PACKET_MAX_SIZE];
+	uint8_t _rxIndex;
+	int _rxSize;
+	uint8_t _rxIp[4];
+	uint16_t _rxPort;
+	
 public:
 	void begin(uint16_t);				// initialize, start listening on specified port
 	int available();								// has data been received?
@@ -57,6 +66,9 @@ public:
 	virtual void write(uint8_t); // add a byte to the currently assembled packet (if there's space)
 	int endPacket(); // returns # of bytes sent on success, 0 if there's nothing to send
 	
+	int read(); //read a byte if available - returns -1 if end of packet
+	void getSenderIp(uint8_t*ip);
+	unsigned int getSenderPort();
 };
 
 extern UdpBytewiseClass UdpBytewise;

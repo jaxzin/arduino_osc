@@ -38,25 +38,45 @@ extern "C" {
 void UdpBytewiseClass::begin(uint16_t port) {
 	_port = port;
 	_sock = 0; //TODO: should not be hardcoded
-	_index =0;
+	_txIndex =0;
+	_rxIndex =0;
+	_rxSize = 0;
 	socket(_sock,Sn_MR_UDP,_port,0);
 }
 
 
 /* Is data available in rx buffer? Returns 0 if no, number of available bytes if yes. */
 int UdpBytewiseClass::available() {
-	return getSn_RX_RSR(_sock);
+	if(_rxSize==0 || _rxSize-_rxIndex==0) { 
+		//if local buffer is empty or depleted
+		//check wiz5100 buffer for new packet
+		_rxSize = getSn_RX_RSR(_sock); //this size is inflated by 8 byte header
+		if(_rxSize){
+			//if we have a new packet there
+			//copy it into our local buffer
+			_rxIndex=0;
+			_rxSize = recvfrom(_sock,_rxBuffer,_rxSize-8,_rxIp,&_rxPort);
+		} else {
+			//else do nothing and rxsize is still 0
+			;
+		}
+		return _rxSize; //return the new number of bytes in our buffer
+	} else{
+		//if buffer is not empty, return remaining # of bytes
+		return (_rxSize-_rxIndex);
+	}
+	
 }
 
 
 
 int UdpBytewiseClass::beginPacket(uint8_t *ip, unsigned int port) { // returns 1 on success, 0 if we already started a packet
-	if(_index==0) {
-		_remoteIp[0]=ip[0];
-		_remoteIp[1]=ip[1];
-		_remoteIp[2]=ip[2];
-		_remoteIp[3]=ip[3];
-		_remotePort = port;
+	if(_txIndex==0) {
+		_txIp[0]=ip[0];
+		_txIp[1]=ip[1];
+		_txIp[2]=ip[2];
+		_txIp[3]=ip[3];
+		_txPort = port;
 		return 1;
 	}
 	else {
@@ -70,21 +90,45 @@ int UdpBytewiseClass::beginPacket(uint8_t *ip, unsigned int port) { // returns 1
 // TODO: how do we indicate that we can't add to full buffer?
 // or do we just send a full packet and start the next?
 void UdpBytewiseClass::write(uint8_t b) {// add a byte to the currently assembled packet if there is space
-	if(_index>= UDP_TX_PACKET_MAX_SIZE)
+	if(_txIndex>= UDP_TX_PACKET_MAX_SIZE)
 		return;		
-	_buffer[_index++] = b;
+	_txBuffer[_txIndex++] = b;
 }
 
 int UdpBytewiseClass::endPacket(){ // returns # of bytes sent on success, 0 if there's nothing to send
 	// send the packet
-	uint16_t result = sendto(_sock,(const uint8_t *)_buffer,_index,_remoteIp,_remotePort);
+	uint16_t result = sendto(_sock,(const uint8_t *)_txBuffer,_txIndex,_txIp,_txPort);
 	// reset buffer index
-	_index=0;
+	_txIndex=0;
 	// return sent bytes
 	return (int)result;
 }
 
-
+int UdpBytewiseClass::read() {
+	if(_rxIndex!=_rxSize) {
+		//if there is something to be read
+		//return the next byte
+		return _rxBuffer[_rxIndex++];
+		
+	} else {
+		//we already sent the last byte
+		//reset our buffer
+		_rxIndex=0;
+		_rxSize=0;
+		return -1;
+	}
+}
+	
+void UdpBytewiseClass::getSenderIp(uint8_t*ip) {
+	ip[0]=_rxIp[0];
+	ip[1]=_rxIp[1];
+	ip[2]=_rxIp[2];
+	ip[3]=_rxIp[3];
+}
+	
+unsigned int  UdpBytewiseClass::getSenderPort() {
+	return _rxPort;
+}
 
 /* Create one global object */
 UdpBytewiseClass UdpBytewise;

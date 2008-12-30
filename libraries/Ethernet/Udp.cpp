@@ -43,11 +43,22 @@ void UdpClass::begin(uint16_t port) {
 
 
 /* Send packet contained in buf of length len to peer at specified ip, and port */
+/* Use this function to transmit binary data that might contain 0x00 bytes*/
 /* This function returns sent data size for success else -1. */
 uint16_t UdpClass::sendPacket(uint8_t * buf, uint16_t len,  uint8_t * ip, uint16_t port){
 	return sendto(_sock,(const uint8_t *)buf,len,ip,port);
 }
 
+/* Send  zero-terminated string str as packet to peer at specified ip, and port */
+/* This function returns sent data size for success else -1. */
+uint16_t UdpClass::sendPacket(const char str[], uint8_t * ip, uint16_t port){	
+	// compute strlen
+	const char *s;
+	for(s = str; *s; ++s);
+	uint16_t len = (s-str);
+	// send packet
+	return sendto(_sock,(const uint8_t *)str,len,ip,port);
+}
 /* Is data available in rx buffer? Returns 0 if no, number of available bytes if yes. */
 int UdpClass::available() {
 	return getSn_RX_RSR(_sock);

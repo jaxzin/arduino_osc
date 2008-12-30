@@ -134,6 +134,7 @@ char prefixPwm[] = "/pwm/";
 char prefixIn[]="/in/";
 char prefixA2d[]="/adc/";
 char prefixReset[]="/reset"; //TODO: implement
+char prefixEcho[]="/echo";
 
 char oscOutAddress[10]={0x00}; //string that holds outgoing osc message address
 char* numbers[] = {"0","1","2","3","4","5","6","7","8","9","10","11","12"};
@@ -407,6 +408,11 @@ void oscReceiveMessageInt(char * msg, unsigned long value)
   //is this a reset message? if so, reinitialize.
   if(strncmp(msg,prefixReset,strlen(prefixReset))==0) {
     setup();
+    return;
+  }
+  //is this an echo message? if so, send it back.
+  if(strncmp(msg,prefixEcho,strlen(prefixReset))==0) {
+    oscSendMessageInt(prefixEcho,0);
   }
 }
 

@@ -308,9 +308,8 @@ void oscSendMessageInt(char * address, unsigned long value){
   oscBuffer[offset++]=*(((unsigned char *)(&value))+0);
 
   //send message as one packet
-  for(i=0;i<offset;i++) {
-    Udp.sendPacket((byte *)oscBuffer,offset,targetIp,targetPort);
-  }
+  Udp.sendPacket((byte *)oscBuffer,offset,targetIp,targetPort);
+
 }
 
 

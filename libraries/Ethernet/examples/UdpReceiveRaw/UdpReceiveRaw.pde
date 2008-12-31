@@ -35,11 +35,10 @@ void loop() {
   // if there's data available, read a packet
   if(UdpRaw.available()) {
     packetSize = UdpRaw.readPacket(packetBuffer,MAX_SIZE,remoteIp,(uint16_t *)&remotePort);
-    if(packetSize <= MAX_SIZE) {
       
       Serial.print("Received packet of size ");
-      Serial.println(packetSize);
-      
+      Serial.println(abs(packetSize));
+
       Serial.print("From IP ");
       for(i=0; i<3; i++) {
         Serial.print(remoteIp[i],DEC);
@@ -50,16 +49,21 @@ void loop() {
       Serial.print(" Port ");
       Serial.println(remotePort); 
       
+      if(packetSize < 0) {
+        // if return value <0 the packet was truncated to fit into our buffer
+        Serial.print("ERROR: Packet was truncated from ");
+        Serial.print(packetSize*-1);
+        Serial.print(" to ");
+        Serial.print(MAX_SIZE);
+        Serial.println(" bytes.");
+      }
+      
       Serial.println("Contents:");
-      for(i=0; i<packetSize; i++) {
+      for(i=0; i<min(MAX_SIZE,abs(packetSize)); i++) {
         Serial.print(packetBuffer[i],BYTE);
       }
       Serial.println("");
       
-    } else {
-      // PANIC - packet too long!
-      // we've already clobbered mem past our buffer boundary
-    }
   }
   //wait a bit
   delay(10);  

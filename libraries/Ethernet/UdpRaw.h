@@ -51,8 +51,8 @@ public:
 	// C-style buffer-oriented functions
 	uint16_t sendPacket(uint8_t *, uint16_t, uint8_t *, uint16_t); //send a packet to specified peer 
 	uint16_t sendPacket(const char[], uint8_t *, uint16_t);  //send a string as a packet to specified peer
-	uint16_t readPacket(uint8_t *, uint16_t);		// read a received packet 
-	uint16_t readPacket(uint8_t *, uint16_t, uint8_t *, uint16_t *);		// read a received packet, also return sender's ip and port 	
+	int readPacket(uint8_t *, uint16_t);		// read a received packet 
+	int readPacket(uint8_t *, uint16_t, uint8_t *, uint16_t *);		// read a received packet, also return sender's ip and port 	
 };
 
 extern UdpRawClass UdpRaw;

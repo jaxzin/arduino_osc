@@ -66,9 +66,15 @@ int UdpStringClass::readPacket(String &str) {
 	return readPacket(str,ip,port);
 }
 
+/* read packet into String str - if str is too short, expand its capacity */
 int UdpStringClass::readPacket(String &str, byte * ip, unsigned int *port) {
-	if(available() > str.capacity()) {
-		return 0; //can't read - string too small - this is BAD because we didn't drain the buffer
+	int len = available() -8; //skip UDP header
+	if(len <= 0) return 0;
+	if(len > str.capacity()) {
+		//packet is longer than string capacity - 
+		//resize string - this is very implementation dependent on WString
+		str = String(len);		
+		//fall through to read which should be ok now
 	}
 	return (int)recvfrom(_sock,(byte *)(str.cstr()),(uint16_t)str.capacity(),ip,port);
 }

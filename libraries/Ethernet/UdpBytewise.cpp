@@ -42,6 +42,7 @@ void UdpBytewiseClass::begin(uint16_t port) {
 	_txIndex =0;
 	_rxIndex =0;
 	_rxSize = 0;
+	_txOverflowStrategy = UDP_TX_OVERFLOW_SPLIT;	
 	socket(_sock,Sn_MR_UDP,_port,0);
 }
 
@@ -90,11 +91,23 @@ int UdpBytewiseClass::beginPacket(uint8_t *ip, unsigned int port) {
 
 
 /* Add a byte to the currently assembled packet if there is space
- * TODO: how do we indicate that we can't add to full buffer?
+ * if there isn't space, either truncate (ignore) or split the packet.
  */
 void UdpBytewiseClass::write(uint8_t b) {
-	if(_txIndex>= UDP_TX_PACKET_MAX_SIZE)
-		return;		
+	if(_txIndex>= UDP_TX_PACKET_MAX_SIZE) {
+		//buffer is full - we can either truncate the packet or split in two
+		switch (_txOverflowStrategy) {
+			case UDP_TX_OVERFLOW_SPLIT:
+				endPacket();
+				beginPacket(_txIp,_txPort);
+				//fall through to normal add of byte to buffer below
+				break;
+			case UDP_TX_OVERFLOW_TRUNCATE:
+			default:
+				//don't add - just ignore bytes past buffer size
+				return;
+		}
+	}
 	_txBuffer[_txIndex++] = b;
 }
 
@@ -129,6 +142,14 @@ void UdpBytewiseClass::getSenderIp(uint8_t*ip) {
 	
 unsigned int  UdpBytewiseClass::getSenderPort() {
 	return _rxPort;
+}
+
+/* what should we do when we try to add to a full outgoing packet? 
+ * UDP_TX_OVERFLOW_TRUNCATE - throw overflow bytes away
+ * UDP_TX_OVERFLOW_SPLIT - split into multiple packets
+ */
+void UdpBytewiseClass::setOverflowStrategy(uint8_t strategy) {
+	_txOverflowStrategy = strategy;
 }
 
 /* Create one global object */

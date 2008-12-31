@@ -41,6 +41,9 @@
 #define UDP_TX_PACKET_MAX_SIZE 32
 #define UDP_RX_PACKET_MAX_SIZE 32
 
+#define UDP_TX_OVERFLOW_TRUNCATE 0
+#define UDP_TX_OVERFLOW_SPLIT 1
+
 class UdpBytewiseClass: public Print {
 private:
 	uint8_t _sock;  // socket ID for Wiz5100
@@ -50,6 +53,7 @@ private:
 	uint8_t _txIndex;
 	uint8_t _txIp[4];
 	uint16_t _txPort;
+	uint8_t _txOverflowStrategy; 
 	
 	uint8_t _rxBuffer[UDP_RX_PACKET_MAX_SIZE];
 	uint8_t _rxIndex;
@@ -70,7 +74,7 @@ public:
 	
 	void getSenderIp(uint8_t * ip);  //get remote IP of the packet we're currently reading from
 	unsigned int getSenderPort();  //get remote port# of the packet we're currently reading from
-	
+	void setOverflowStrategy(uint8_t); // what to do when our packet is full and we try to add more?
 };
 
 extern UdpBytewiseClass UdpBytewise;

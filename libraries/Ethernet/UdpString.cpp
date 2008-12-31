@@ -1,6 +1,10 @@
 /*
- *  Udp.cpp: Library to send/receive UDP packets with the Arduino ethernet shield.
- *  Drop Udp.h/.cpp into the Ethernet library directory at hardware/libraries/Ethernet/ 
+ * UdpString.cpp: Library to send/receive UDP packets with the Arduino ethernet shield
+ * using Tom Igoe/Hernando Barragan's WString library.
+ * Drop UdpString.h/.cpp from this distribution into the Ethernet library directory at 
+ * hardware/libraries/Ethernet/ 
+ * Then copy directory /libraries/String from this distribution to /hardware/libraries/String in
+ * your Arduino installation.
  *
  * MIT License:
  * Copyright (c) 2008 Bjoern Hartmann
@@ -22,7 +26,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  *
- * bjoern@cs.stanford.edu 12/29/2008
+ * bjoern@cs.stanford.edu 12/30/2008
  */
 
 extern "C" {

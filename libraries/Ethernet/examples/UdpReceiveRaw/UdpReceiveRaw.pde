@@ -1,7 +1,7 @@
 #include <Ethernet.h>
 #include <UdpRaw.h>
 
-/* UdpReceive.pde: Example how to receive packets over UDP using UdpRaw library
+/* UdpReceiveRaw.pde: Example how to receive packets over UDP using UdpRaw library
  * prints received packet to serial port
  * bjoern@cs.stanford.edu 12/30/2008
  */
@@ -27,7 +27,7 @@ int i;
 void setup() {
   Ethernet.begin(mac,ip,gw);
   UdpRaw.begin(localPort);
-  Serial.begin(9600); 
+  Serial.begin(38400); 
 }
 /* LOOP: wait for incoming packets and print each packet to the serial port */
 void loop() {  

@@ -1,6 +1,7 @@
 /*
- *  Udp.cpp: Library to send/receive UDP packets with the Arduino ethernet shield.
- *  Drop Udp.h/.cpp into the Ethernet library directory at hardware/libraries/Ethernet/ 
+ *  UdpRaw.cpp: Library to send/receive UDP packets with the Arduino ethernet shield.
+ *  This version only offers minimal wrapping of socket.c/socket.h
+ *  Drop UdpRaw.h/.cpp into the Ethernet library directory at hardware/libraries/Ethernet/ 
  *
  * MIT License:
  * Copyright (c) 2008 Bjoern Hartmann
@@ -22,7 +23,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  *
- * bjoern@cs.stanford.edu 12/29/2008
+ * bjoern@cs.stanford.edu 12/30/2008
  */
 
 extern "C" {

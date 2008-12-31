@@ -25,7 +25,7 @@ int i;
 void setup() {
   Ethernet.begin(mac,ip,gw);
   UdpString.begin(localPort);
-  Serial.begin(9600); 
+  Serial.begin(38400); 
 }
 
 /* LOOP: wait for incoming packets and print each packet to the serial port */

@@ -1,6 +1,7 @@
 /*
- *  Udp.cpp: Library to send/receive UDP packets with the Arduino ethernet shield.
- *  Drop Udp.h/.cpp into the Ethernet library directory at hardware/libraries/Ethernet/ 
+ * UdpBytewise.cpp: Library to send/receive UDP packets with the Arduino ethernet shield.
+ * Drop UdpBytewise.h/.cpp into the Ethernet library directory at hardware/libraries/Ethernet/ 
+ * TODO: should protect buffer access with critical sections
  *
  * MIT License:
  * Copyright (c) 2008 Bjoern Hartmann
@@ -22,7 +23,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  *
- * bjoern@cs.stanford.edu 12/29/2008
+ * bjoern@cs.stanford.edu 12/30/2008
  */
 
 extern "C" {
@@ -50,11 +51,12 @@ int UdpBytewiseClass::available() {
 	if(_rxSize==0 || _rxSize-_rxIndex==0) { 
 		//if local buffer is empty or depleted
 		//check wiz5100 buffer for new packet
-		_rxSize = getSn_RX_RSR(_sock); //this size is inflated by 8 byte header
+		_rxSize = getSn_RX_RSR(_sock); //note: return value is inflated by 8 byte header
 		if(_rxSize){
 			//if we have a new packet there
-			//copy it into our local buffer
+			//reset buffer index
 			_rxIndex=0;
+			//copy packet into our local buffer
 			_rxSize = recvfrom(_sock,_rxBuffer,_rxSize-8,_rxIp,&_rxPort);
 		} else {
 			//else do nothing and rxsize is still 0
@@ -65,13 +67,14 @@ int UdpBytewiseClass::available() {
 		//if buffer is not empty, return remaining # of bytes
 		return (_rxSize-_rxIndex);
 	}
-	
 }
 
 
-
-int UdpBytewiseClass::beginPacket(uint8_t *ip, unsigned int port) { // returns 1 on success, 0 if we already started a packet
+/* Start a new packet with given target ip and port 
+ * returns 1 on success, 0 if we already started a packet */
+int UdpBytewiseClass::beginPacket(uint8_t *ip, unsigned int port) {	
 	if(_txIndex==0) {
+		//ok to start new packet - copy ip and port
 		_txIp[0]=ip[0];
 		_txIp[1]=ip[1];
 		_txIp[2]=ip[2];
@@ -80,22 +83,24 @@ int UdpBytewiseClass::beginPacket(uint8_t *ip, unsigned int port) { // returns 1
 		return 1;
 	}
 	else {
-		//we already started a packet
+		//we already started a packet and have data in it
 		return 0;
 	}
 }
 
 
-
-// TODO: how do we indicate that we can't add to full buffer?
-// or do we just send a full packet and start the next?
-void UdpBytewiseClass::write(uint8_t b) {// add a byte to the currently assembled packet if there is space
+/* Add a byte to the currently assembled packet if there is space
+ * TODO: how do we indicate that we can't add to full buffer?
+ */
+void UdpBytewiseClass::write(uint8_t b) {
 	if(_txIndex>= UDP_TX_PACKET_MAX_SIZE)
 		return;		
 	_txBuffer[_txIndex++] = b;
 }
 
-int UdpBytewiseClass::endPacket(){ // returns # of bytes sent on success, 0 if there's nothing to send
+/* send an assembled packet out 
+ * returns # of bytes sent on success, 0 if there's nothing to send */
+int UdpBytewiseClass::endPacket() {
 	// send the packet
 	uint16_t result = sendto(_sock,(const uint8_t *)_txBuffer,_txIndex,_txIp,_txPort);
 	// reset buffer index
@@ -104,17 +109,13 @@ int UdpBytewiseClass::endPacket(){ // returns # of bytes sent on success, 0 if t
 	return (int)result;
 }
 
+/* read the next byte of the last rececived packet */
 int UdpBytewiseClass::read() {
-	if(_rxIndex!=_rxSize) {
-		//if there is something to be read
-		//return the next byte
-		return _rxBuffer[_rxIndex++];
-		
+	if(_rxIndex < _rxSize) {
+		// if there is something to be read, return the next byte
+		return _rxBuffer[_rxIndex++];		
 	} else {
-		//we already sent the last byte
-		//reset our buffer
-		_rxIndex=0;
-		_rxSize=0;
+		//we already sent the last byte - nothing to do
 		return -1;
 	}
 }

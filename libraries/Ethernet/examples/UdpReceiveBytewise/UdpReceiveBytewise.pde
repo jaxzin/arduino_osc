@@ -13,12 +13,12 @@
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED }; // MAC address to use
 byte ip[] = { 192, 168, 11, 200 }; // Arduino's IP address
 byte gw[] = { 192, 168, 11, 1 };   // Gateway IP address
-int localPort = 8888; // local port to listen on
+unsigned int localPort = 8888; // local port to listen on
 
 #define MAX_SIZE 32 // maximum packet size
 byte packetBuffer[MAX_SIZE]; //buffer to hold incoming packet
 int packetSize; // holds received packet size
-byte remoteIp[4]; // holds recvieved packet's originating IP
+byte remoteIp[4]; // holds recieved packet's originating IP
 unsigned int remotePort; // holds received packet's originating port
 
 int i;
@@ -27,11 +27,10 @@ int i;
 void setup() {
   Ethernet.begin(mac,ip,gw);
   UdpBytewise.begin(localPort);
-  Serial.begin(9600); 
+  Serial.begin(38400); 
 }
 /* LOOP: wait for incoming packets and print each packet to the serial port */
 void loop() {  
-  
   // if there's data available, read a packet
   if(packetSize = UdpBytewise.available()) {
     Serial.print("Received packet of size ");
@@ -39,11 +38,10 @@ void loop() {
     
     UdpBytewise.getSenderIp(remoteIp);
     Serial.print("From IP ");
-    for(i=0; i<3; i++) {
+    for(i=0; i<4; i++) {
       Serial.print(remoteIp[i],DEC);
-      Serial.print(".");
+      if(i<3) Serial.print(".");
     }
-    Serial.print(remoteIp[3],DEC);
     
     remotePort = UdpBytewise.getSenderPort();
     Serial.print(" Port ");

@@ -1,6 +1,7 @@
 /*
- *  Udp.h: Library to send/receive UDP packets with the Arduino ethernet shield.
- *  Drop Udp.h/.cpp into the Ethernet library directory at hardware/libraries/Ethernet/ 
+ *  UdpRaw.cpp: Library to send/receive UDP packets with the Arduino ethernet shield.
+ *  This version only offers minimal wrapping of socket.c/socket.h
+ *  Drop UdpRaw.h/.cpp into the Ethernet library directory at hardware/libraries/Ethernet/ 
  *
  * NOTE: UDP is fast, but has some important limitations (thanks to Warren Gray for mentioning these)
  * 1) UDP does not guarantee the order in which assembled UDP packets are received. This
@@ -30,7 +31,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  *
- * bjoern@cs.stanford.edu 12/29/2008
+ * bjoern@cs.stanford.edu 12/30/2008
  */
 
 #ifndef UdpRaw_h

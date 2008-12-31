@@ -1,6 +1,6 @@
 /*
- *  Udp.h: Library to send/receive UDP packets with the Arduino ethernet shield.
- *  Drop Udp.h/.cpp into the Ethernet library directory at hardware/libraries/Ethernet/ 
+ * UdpBytewise.cpp: Library to send/receive UDP packets with the Arduino ethernet shield.
+ * Drop UdpBytewise.h/.cpp into the Ethernet library directory at hardware/libraries/Ethernet
  *
  * NOTE: UDP is fast, but has some important limitations (thanks to Warren Gray for mentioning these)
  * 1) UDP does not guarantee the order in which assembled UDP packets are received. This
@@ -30,7 +30,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  *
- * bjoern@cs.stanford.edu 12/29/2008
+ * bjoern@cs.stanford.edu 12/30/2008
  */
 
 #ifndef UdpBytewise_h
@@ -59,16 +59,18 @@ private:
 	
 public:
 	void begin(uint16_t);				// initialize, start listening on specified port
-	int available();								// has data been received?
+	int available();				    // has data been received?
 
 	// Single byte-oriented functions:
 	int beginPacket(uint8_t *ip, unsigned int port); // returns 1 on success, 0 if we already started a packet
 	virtual void write(uint8_t); // add a byte to the currently assembled packet (if there's space)
 	int endPacket(); // returns # of bytes sent on success, 0 if there's nothing to send
 	
-	int read(); //read a byte if available - returns -1 if end of packet
-	void getSenderIp(uint8_t*ip);
-	unsigned int getSenderPort();
+	int read(); //read a byte if available - returns -1 if no data available
+	
+	void getSenderIp(uint8_t * ip);  //get remote IP of the packet we're currently reading from
+	unsigned int getSenderPort();  //get remote port# of the packet we're currently reading from
+	
 };
 
 extern UdpBytewiseClass UdpBytewise;

@@ -4,11 +4,11 @@ To enable UDP communication, this package also contains additions to Arduino's E
 
 There are three different UDP libraries included:
 
-UdpBytewise mimics byte-by-byte reading and writing of packets as used in the Serial and Wire libraries of Arduino. This library has a small footprint and offers continuity with existing programming models, but it has some limitations as packet boundaries are ignored by the read function. For writing, when the maximum packet length is exceeded, users can choose to either truncate the packet or auto-split into multiple packets.
+UdpBytewise mimics byte-by-byte reading and writing of packets as used in the Serial and Wire libraries of Arduino. This library has a small footprint and offers continuity with existing programming models, but it has some limitations as packet boundaries are ignored by the read function. While assembling packets, when the maximum packet buffer length is exceeded, users can choose to either truncate the packet or auto-split into multiple packets.
 
-UdpString uses Tom Igoe/Hernando Barragan's WString library for packets. This library offer high-level abstractions that preserve packet boundaries. However, it is currently rather large and does not leave much space for the user's sketch. The package contains a redistribution of WString for this library.
+UdpString uses Tom Igoe/Hernando Barragan's WString library for packets. This library offers high-level abstractions that preserve packet boundaries. However, it is currently rather large and does not leave much space for the user's sketch on ATmega168. The library also doesn't lend itself to dealing with binary strings as many underlying functions depend on strcpy/strcmp/etc which all assume zero-terminated strings. A nice feature: if incoming messages exceed String capacity, the String is automatically resized to prevent overflow. The package contains a redistribution of WString for this library.
 
-UdpRaw is a thin wrapper around the UDP functions offered by the socket.c file in the Ethernet library - it uses raw byte buffers to send/receive packets. This library has the smallest footprint but is most challenging to use for novices.
+UdpRaw is a thin wrapper around the UDP functions offered by the socket.c file in the Ethernet library - it uses raw byte buffers to send/receive packets. This library has the smallest footprint but is most challenging to use for novices. If incoming packets exceed buffer capacity, the packets are truncated to fit into the buffer and an error code is returned to alert the application.
 
 Examples for sending/receiving packets for each of these three libraries are included in /libraries/Ethernet/examples/.
 
